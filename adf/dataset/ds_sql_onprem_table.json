@@ -1,0 +1,30 @@
+{
+  "name": "ds_sql_onprem_table",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_sql_onprem",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "schemaName": {
+        "type": "string"
+      },
+      "tableName": {
+        "type": "string"
+      }
+    },
+    "annotations": [],
+    "type": "SqlServerTable",
+    "schema": [],
+    "typeProperties": {
+      "schema": {
+        "value": "@dataset().schemaName",
+        "type": "Expression"
+      },
+      "table": {
+        "value": "@dataset().tableName",
+        "type": "Expression"
+      }
+    }
+  }
+}

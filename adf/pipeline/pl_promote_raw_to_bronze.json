@@ -1,0 +1,200 @@
+{
+  "name": "pl_promote_raw_to_bronze",
+  "properties": {
+    "description": "Promove um TXT imutável da camada raw para bronze e valida a existência e o tamanho do destino.",
+    "activities": [
+      {
+        "name": "Copiar raw para bronze",
+        "type": "Copy",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "DelimitedTextSource",
+            "storeSettings": {
+              "type": "AzureBlobFSReadSettings",
+              "recursive": false,
+              "enablePartitionDiscovery": false
+            },
+            "formatSettings": {
+              "type": "DelimitedTextReadSettings"
+            }
+          },
+          "sink": {
+            "type": "DelimitedTextSink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            },
+            "formatSettings": {
+              "type": "DelimitedTextWriteSettings",
+              "quoteAllText": false,
+              "fileExtension": ".txt"
+            }
+          },
+          "enableStaging": false,
+          "validateDataConsistency": true,
+          "translator": {
+            "type": "TabularTranslator",
+            "typeConversion": true,
+            "typeConversionSettings": {
+              "allowDataTruncation": false,
+              "treatBooleanAsNumber": false
+            }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_adls_delimited",
+            "type": "DatasetReference",
+            "parameters": {
+              "fileSystem": "raw",
+              "folderPath": {
+                "value": "@pipeline().parameters.rawFolder",
+                "type": "Expression"
+              },
+              "fileName": {
+                "value": "@pipeline().parameters.fileName",
+                "type": "Expression"
+              },
+              "columnDelimiter": {
+                "value": "@pipeline().parameters.columnDelimiter",
+                "type": "Expression"
+              }
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_adls_delimited",
+            "type": "DatasetReference",
+            "parameters": {
+              "fileSystem": "bronze",
+              "folderPath": {
+                "value": "@pipeline().parameters.bronzeFolder",
+                "type": "Expression"
+              },
+              "fileName": {
+                "value": "@pipeline().parameters.fileName",
+                "type": "Expression"
+              },
+              "columnDelimiter": {
+                "value": "@pipeline().parameters.columnDelimiter",
+                "type": "Expression"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Ler metadados do bronze",
+        "type": "GetMetadata",
+        "dependsOn": [
+          {
+            "activity": "Copiar raw para bronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.00:10:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 15,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "dataset": {
+            "referenceName": "ds_adls_delimited",
+            "type": "DatasetReference",
+            "parameters": {
+              "fileSystem": "bronze",
+              "folderPath": {
+                "value": "@pipeline().parameters.bronzeFolder",
+                "type": "Expression"
+              },
+              "fileName": {
+                "value": "@pipeline().parameters.fileName",
+                "type": "Expression"
+              },
+              "columnDelimiter": {
+                "value": "@pipeline().parameters.columnDelimiter",
+                "type": "Expression"
+              }
+            }
+          },
+          "fieldList": [
+            "exists",
+            "size"
+          ],
+          "storeSettings": {
+            "type": "AzureBlobFSReadSettings",
+            "enablePartitionDiscovery": false
+          },
+          "formatSettings": {
+            "type": "DelimitedTextReadSettings"
+          }
+        }
+      },
+      {
+        "name": "Validar arquivo bronze",
+        "type": "IfCondition",
+        "dependsOn": [
+          {
+            "activity": "Ler metadados do bronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "expression": {
+            "value": "@and(activity('Ler metadados do bronze').output.exists,greater(activity('Ler metadados do bronze').output.size,0))",
+            "type": "Expression"
+          },
+          "ifFalseActivities": [
+            {
+              "name": "Falhar arquivo bronze inválido",
+              "type": "Fail",
+              "dependsOn": [],
+              "typeProperties": {
+                "message": "O arquivo bronze não existe ou tem zero bytes.",
+                "errorCode": "INVALID_BRONZE_FILE"
+              }
+            }
+          ],
+          "ifTrueActivities": []
+        }
+      }
+    ],
+    "parameters": {
+      "rawFolder": {
+        "type": "string"
+      },
+      "bronzeFolder": {
+        "type": "string"
+      },
+      "fileName": {
+        "type": "string"
+      },
+      "columnDelimiter": {
+        "type": "string",
+        "defaultValue": ";"
+      }
+    },
+    "folder": {
+      "name": "SQL to Data Lake"
+    },
+    "annotations": [
+      "raw",
+      "bronze",
+      "data-quality"
+    ]
+  }
+}

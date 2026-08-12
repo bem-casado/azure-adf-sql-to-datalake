@@ -1,0 +1,12 @@
+{
+  "name": "ls_key_vault",
+  "properties": {
+    "annotations": [
+      "Segredos de credenciais das origens locais"
+    ],
+    "type": "AzureKeyVault",
+    "typeProperties": {
+      "baseUrl": "https://__KEY_VAULT_NAME__.vault.azure.net/"
+    }
+  }
+}

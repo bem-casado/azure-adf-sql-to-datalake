@@ -1,0 +1,29 @@
+{
+  "name": "ls_sql_onprem",
+  "properties": {
+    "annotations": [
+      "SQL Server local acessado somente pelo Self-hosted Integration Runtime"
+    ],
+    "type": "SqlServer",
+    "typeProperties": {
+      "server": "__ON_PREM_SQL_SERVER__",
+      "database": "__ON_PREM_SQL_DATABASE__",
+      "encrypt": "optional",
+      "trustServerCertificate": true,
+      "authenticationType": "SQL",
+      "userName": "__ON_PREM_SQL_USER__",
+      "password": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_key_vault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "__ON_PREM_PASSWORD_SECRET_NAME__"
+      }
+    },
+    "connectVia": {
+      "referenceName": "ir-selfhosted-onprem",
+      "type": "IntegrationRuntimeReference"
+    }
+  }
+}

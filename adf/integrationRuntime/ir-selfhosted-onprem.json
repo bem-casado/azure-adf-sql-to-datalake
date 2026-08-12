@@ -1,0 +1,7 @@
+{
+  "name": "ir-selfhosted-onprem",
+  "properties": {
+    "type": "SelfHosted",
+    "description": "Acesso de saída ao SQL Server local. Use dois nós para alta disponibilidade em produção."
+  }
+}

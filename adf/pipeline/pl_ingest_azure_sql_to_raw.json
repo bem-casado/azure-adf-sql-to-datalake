@@ -1,0 +1,249 @@
+{
+  "name": "pl_ingest_azure_sql_to_raw",
+  "properties": {
+    "description": "Copia uma tabela do Azure SQL para raw e promove uma cópia validada para bronze.",
+    "activities": [
+      {
+        "name": "Definir pasta raw",
+        "type": "SetVariable",
+        "dependsOn": [],
+        "policy": {
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "variableName": "rawFolder",
+          "value": {
+            "value": "@concat('azure-sql/',pipeline().parameters.schemaName,'/',pipeline().parameters.tableName,'/',formatDateTime(utcNow(),'yyyy/MM/dd'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Definir pasta bronze",
+        "type": "SetVariable",
+        "dependsOn": [],
+        "policy": {
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "variableName": "bronzeFolder",
+          "value": {
+            "value": "@concat('azure-sql/',pipeline().parameters.schemaName,'/',pipeline().parameters.tableName,'/',formatDateTime(utcNow(),'yyyy/MM/dd'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Definir nome do arquivo",
+        "type": "SetVariable",
+        "dependsOn": [],
+        "policy": {
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "variableName": "outputFile",
+          "value": {
+            "value": "@concat(pipeline().parameters.tableName,'_',formatDateTime(utcNow(),'yyyyMMdd_HHmmss'),'_',pipeline().RunId,'.txt')",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Copiar Azure SQL para raw",
+        "type": "Copy",
+        "dependsOn": [
+          {
+            "activity": "Definir pasta raw",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Definir pasta bronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Definir nome do arquivo",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.02:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "sink": {
+            "type": "DelimitedTextSink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            },
+            "formatSettings": {
+              "type": "DelimitedTextWriteSettings",
+              "quoteAllText": false,
+              "fileExtension": ".txt"
+            }
+          },
+          "enableStaging": false,
+          "validateDataConsistency": true,
+          "translator": {
+            "type": "TabularTranslator",
+            "typeConversion": true,
+            "typeConversionSettings": {
+              "allowDataTruncation": false,
+              "treatBooleanAsNumber": false
+            }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_azure_sql_table",
+            "type": "DatasetReference",
+            "parameters": {
+              "schemaName": {
+                "value": "@pipeline().parameters.schemaName",
+                "type": "Expression"
+              },
+              "tableName": {
+                "value": "@pipeline().parameters.tableName",
+                "type": "Expression"
+              }
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_adls_delimited",
+            "type": "DatasetReference",
+            "parameters": {
+              "fileSystem": "raw",
+              "folderPath": {
+                "value": "@variables('rawFolder')",
+                "type": "Expression"
+              },
+              "fileName": {
+                "value": "@variables('outputFile')",
+                "type": "Expression"
+              },
+              "columnDelimiter": {
+                "value": "@pipeline().parameters.columnDelimiter",
+                "type": "Expression"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Validar e promover",
+        "type": "IfCondition",
+        "dependsOn": [
+          {
+            "activity": "Copiar Azure SQL para raw",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "expression": {
+            "value": "@greater(activity('Copiar Azure SQL para raw').output.rowsCopied,0)",
+            "type": "Expression"
+          },
+          "ifFalseActivities": [
+            {
+              "name": "Falhar quando origem estiver vazia",
+              "type": "Fail",
+              "dependsOn": [],
+              "typeProperties": {
+                "message": "A Copy Activity terminou sem copiar linhas. Verifique a tabela e a política para cargas vazias.",
+                "errorCode": "NO_ROWS_COPIED"
+              }
+            }
+          ],
+          "ifTrueActivities": [
+            {
+              "name": "Promover raw para bronze",
+              "type": "ExecutePipeline",
+              "dependsOn": [],
+              "policy": {
+                "secureInput": false
+              },
+              "typeProperties": {
+                "pipeline": {
+                  "referenceName": "pl_promote_raw_to_bronze",
+                  "type": "PipelineReference"
+                },
+                "waitOnCompletion": true,
+                "parameters": {
+                  "rawFolder": {
+                    "value": "@variables('rawFolder')",
+                    "type": "Expression"
+                  },
+                  "bronzeFolder": {
+                    "value": "@variables('bronzeFolder')",
+                    "type": "Expression"
+                  },
+                  "fileName": {
+                    "value": "@variables('outputFile')",
+                    "type": "Expression"
+                  },
+                  "columnDelimiter": {
+                    "value": "@pipeline().parameters.columnDelimiter",
+                    "type": "Expression"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "schemaName": {
+        "type": "string",
+        "defaultValue": "dbo"
+      },
+      "tableName": {
+        "type": "string",
+        "defaultValue": "Orders"
+      },
+      "columnDelimiter": {
+        "type": "string",
+        "defaultValue": ";"
+      }
+    },
+    "variables": {
+      "rawFolder": {
+        "type": "String"
+      },
+      "bronzeFolder": {
+        "type": "String"
+      },
+      "outputFile": {
+        "type": "String"
+      }
+    },
+    "folder": {
+      "name": "SQL to Data Lake"
+    },
+    "annotations": [
+      "azure-sql",
+      "raw",
+      "bronze"
+    ]
+  }
+}

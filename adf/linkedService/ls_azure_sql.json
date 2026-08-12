@@ -1,0 +1,16 @@
+{
+  "name": "ls_azure_sql",
+  "properties": {
+    "annotations": [
+      "Autenticação Microsoft Entra pela identidade gerenciada do Data Factory"
+    ],
+    "type": "AzureSqlDatabase",
+    "typeProperties": {
+      "server": "__AZURE_SQL_SERVER_NAME__.database.windows.net",
+      "database": "__AZURE_SQL_DATABASE_NAME__",
+      "encrypt": "mandatory",
+      "trustServerCertificate": false,
+      "authenticationType": "SystemAssignedManagedIdentity"
+    }
+  }
+}

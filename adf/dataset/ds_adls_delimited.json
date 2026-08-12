@@ -1,0 +1,53 @@
+{
+  "name": "ds_adls_delimited",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_adls_gen2",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "fileSystem": {
+        "type": "string"
+      },
+      "folderPath": {
+        "type": "string"
+      },
+      "fileName": {
+        "type": "string"
+      },
+      "columnDelimiter": {
+        "type": "string",
+        "defaultValue": ";"
+      }
+    },
+    "annotations": [],
+    "type": "DelimitedText",
+    "schema": [],
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileName": {
+          "value": "@dataset().fileName",
+          "type": "Expression"
+        },
+        "folderPath": {
+          "value": "@dataset().folderPath",
+          "type": "Expression"
+        },
+        "fileSystem": {
+          "value": "@dataset().fileSystem",
+          "type": "Expression"
+        }
+      },
+      "columnDelimiter": {
+        "value": "@dataset().columnDelimiter",
+        "type": "Expression"
+      },
+      "rowDelimiter": "\n",
+      "encodingName": "UTF-8",
+      "escapeChar": "\\",
+      "quoteChar": "\"",
+      "firstRowAsHeader": true
+    }
+  }
+}

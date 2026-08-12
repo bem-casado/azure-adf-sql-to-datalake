@@ -1,0 +1,12 @@
+{
+  "name": "ls_adls_gen2",
+  "properties": {
+    "annotations": [
+      "Identidade gerenciada do Data Factory; sem chave de armazenamento"
+    ],
+    "type": "AzureBlobFS",
+    "typeProperties": {
+      "url": "https://__STORAGE_ACCOUNT_NAME__.dfs.core.windows.net"
+    }
+  }
+}

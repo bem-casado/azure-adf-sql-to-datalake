@@ -85,11 +85,11 @@ module dataFactoryModule 'modules/data-factory.bicep' = {
 }
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
-  name: storageModule.outputs.storageAccountName
+  name: storageAccountName
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultModule.outputs.keyVaultName
+  name: keyVaultName
 }
 
 resource storageBlobDataContributorRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
@@ -103,7 +103,7 @@ resource keyVaultSecretsUserRole 'Microsoft.Authorization/roleDefinitions@2022-0
 }
 
 resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, dataFactoryModule.outputs.principalId, storageBlobDataContributorRole.id)
+  name: guid(storageAccount.id, dataFactoryName, storageBlobDataContributorRole.id)
   scope: storageAccount
   properties: {
     principalId: dataFactoryModule.outputs.principalId
@@ -113,7 +113,7 @@ resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
 }
 
 resource keyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, dataFactoryModule.outputs.principalId, keyVaultSecretsUserRole.id)
+  name: guid(keyVault.id, dataFactoryName, keyVaultSecretsUserRole.id)
   scope: keyVault
   properties: {
     principalId: dataFactoryModule.outputs.principalId

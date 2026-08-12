@@ -73,4 +73,4 @@ resource bronzeContainer 'Microsoft.Storage/storageAccounts/blobServices/contain
 
 output storageAccountName string = storageAccount.name
 output storageAccountId string = storageAccount.id
-output dfsEndpoint string = 'https://${storageAccount.name}.dfs.core.windows.net'
+output dfsEndpoint string = 'https://${storageAccount.name}.dfs.${environment().suffixes.storage}'

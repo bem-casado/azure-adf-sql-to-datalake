@@ -36,7 +36,6 @@ resource entraAdministrator 'Microsoft.Sql/servers/administrators@2023-08-01' = 
   parent: sqlServer
   properties: {
     administratorType: 'ActiveDirectory'
-    azureADOnlyAuthentication: false
     login: entraAdminLogin
     sid: entraAdminObjectId
     tenantId: tenant().tenantId
@@ -62,5 +61,5 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01' = {
 }
 
 output sqlServerName string = sqlServer.name
-output sqlServerFqdn string = '${sqlServer.name}.database.windows.net'
+output sqlServerFqdn string = '${sqlServer.name}${environment().suffixes.sqlServerHostname}'
 output databaseName string = sqlDatabase.name
